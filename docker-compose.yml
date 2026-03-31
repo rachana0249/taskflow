@@ -1,0 +1,57 @@
+# TaskFlow - Docker Compose Setup (Optional)
+# Run: docker-compose up
+
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:5.0
+    container_name: taskflow-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - taskflow-network
+
+  # Node.js Backend
+  backend:
+    build: ./backend
+    container_name: taskflow-backend
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      MONGO_URI: mongodb://admin:admin123@mongodb:27017/taskflow?authSource=admin
+      JWT_SECRET: your_super_secret_jwt_key_change_this
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      - mongodb
+    networks:
+      - taskflow-network
+    command: npm start
+
+  # Frontend (Static Server)
+  frontend:
+    image: node:18-alpine
+    container_name: taskflow-frontend
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    networks:
+      - taskflow-network
+    command: npx serve -s . -l 3000
+
+volumes:
+  mongodb_data:
+
+networks:
+  taskflow-network:
+    driver: bridge

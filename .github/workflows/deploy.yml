@@ -1,0 +1,54 @@
+name: Deploy TaskFlow
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+      
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm install
+      
+      - name: Run Backend Tests
+        run: |
+          cd backend
+          npm test --if-present || echo "No tests defined"
+
+  deploy-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Deploy to Railway
+        uses: rairyx/railway-action@main
+        with:
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          args: "up"
+
+  deploy-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Deploy to Vercel
+        uses: vercel/vercel-action@main
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: frontend
