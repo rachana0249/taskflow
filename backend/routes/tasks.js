@@ -280,4 +280,95 @@ router.put("/:id", auth, async (req, res) => {
       message: error.message,
     });
   }
-});\n\n// DELETE TASK - Delete task\n// DELETE /api/tasks/:id\nrouter.delete(\"/:id\", auth, async (req, res) => {\n  try {\n    const task = await Task.findById(req.params.id);\n\n    if (!task) {\n      return res.status(404).json({\n        success: false,\n        message: \"Task not found\",\n      });\n    }\n\n    // Check access - only creator or project owner can delete\n    const project = await Project.findById(task.project);\n    const canDelete =\n      task.creator.toString() === req.user.id ||\n      project.owner.toString() === req.user.id;\n\n    if (!canDelete) {\n      return res.status(403).json({\n        success: false,\n        message: \"You do not have permission to delete this task\",\n      });\n    }\n\n    await Task.findByIdAndDelete(req.params.id);\n\n    res.json({\n      success: true,\n      message: \"Task deleted successfully\",\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\n// ADD COMMENT - Add comment to task\n// POST /api/tasks/:id/comments\nrouter.post(\"/:id/comments\", auth, async (req, res) => {\n  try {\n    const { text } = req.body;\n\n    if (!text) {\n      return res.status(400).json({\n        success: false,\n        message: \"Comment text is required\",\n      });\n    }\n\n    const task = await Task.findById(req.params.id);\n    if (!task) {\n      return res.status(404).json({\n        success: false,\n        message: \"Task not found\",\n      });\n    }\n\n    task.comments.push({\n      user: req.user.id,\n      text,\n    });\n\n    // Log activity\n    task.activityLog.push({\n      action: \"commented\",\n      changedBy: req.user.id,\n      details: { comment: text },\n    });\n\n    await task.save();\n    await task.populate(\"comments.user\", \"name profileImage\");\n\n    res.json({\n      success: true,\n      message: \"Comment added successfully\",\n      comments: task.comments,\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\nmodule.exports = router;"
+});
+
+// DELETE TASK - Delete task
+// DELETE /api/tasks/:id
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    // Check access - only creator or project owner can delete
+    const project = await Project.findById(task.project);
+    const canDelete =
+      task.creator.toString() === req.user.id ||
+      project.owner.toString() === req.user.id;
+
+    if (!canDelete) {
+      return res.status(403).json({
+        success: false,
+        message: "You do not have permission to delete this task",
+      });
+    }
+
+    await Task.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: "Task deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+// ADD COMMENT - Add comment to task
+// POST /api/tasks/:id/comments
+router.post("/:id/comments", auth, async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: "Comment text is required",
+      });
+    }
+
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    task.comments.push({
+      user: req.user.id,
+      text,
+    });
+
+    // Log activity
+    task.activityLog.push({
+      action: "commented",
+      changedBy: req.user.id,
+      details: { comment: text },
+    });
+
+    await task.save();
+    await task.populate("comments.user", "name profileImage");
+
+    res.json({
+      success: true,
+      message: "Comment added successfully",
+      comments: task.comments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+module.exports = router;"
