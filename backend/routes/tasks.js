@@ -229,7 +229,55 @@ router.put("/:id", auth, async (req, res) => {
       });
     }
 
-    const { title, description, status, priority, dueDate, assignee } =
-      req.body;
+    const { title, description, status, priority, dueDate, assignee } = req.body;
 
-    // Validate: Cannot mark done without assignee and dueDate\n    if (status === \"done\" && !assignee) {\n      return res.status(400).json({\n        success: false,\n        message: \"Assignee is required before marking task as done\",\n      });\n    }\n\n    // Log activity for changed fields\n    const changes = [];\n    if (title && title !== task.title) changes.push(`title: ${task.title} → ${title}`);\n    if (description && description !== task.description) changes.push(\"description updated\");\n    if (status && status !== task.status) changes.push(`status: ${task.status} → ${status}`);\n    if (priority && priority !== task.priority) changes.push(`priority: ${task.priority} → ${priority}`);\n    if (assignee && assignee !== task.assignee?.toString()) changes.push(\"assignee changed\");\n\n    // Update fields\n    if (title) task.title = title;\n    if (description !== undefined) task.description = description;\n    if (status) task.status = status;\n    if (priority) task.priority = priority;\n    if (dueDate) task.dueDate = dueDate;\n    if (assignee) task.assignee = assignee;\n\n    // Add activity log\n    if (changes.length > 0) {\n      task.activityLog.push({\n        action: \"updated\",\n        changedBy: req.user.id,\n        details: { changes },\n      });\n    }\n\n    await task.save();\n    await task.populate(\"assignee\", \"name email profileImage\");\n    await task.populate(\"creator\", \"name email profileImage\");\n    await task.populate(\"activityLog.changedBy\", \"name profileImage\");\n\n    res.json({\n      success: true,\n      message: \"Task updated successfully\",\n      task,\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\n// DELETE TASK - Delete task\n// DELETE /api/tasks/:id\nrouter.delete(\"/:id\", auth, async (req, res) => {\n  try {\n    const task = await Task.findById(req.params.id);\n\n    if (!task) {\n      return res.status(404).json({\n        success: false,\n        message: \"Task not found\",\n      });\n    }\n\n    // Check access - only creator or project owner can delete\n    const project = await Project.findById(task.project);\n    const canDelete =\n      task.creator.toString() === req.user.id ||\n      project.owner.toString() === req.user.id;\n\n    if (!canDelete) {\n      return res.status(403).json({\n        success: false,\n        message: \"You do not have permission to delete this task\",\n      });\n    }\n\n    await Task.findByIdAndDelete(req.params.id);\n\n    res.json({\n      success: true,\n      message: \"Task deleted successfully\",\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\n// ADD COMMENT - Add comment to task\n// POST /api/tasks/:id/comments\nrouter.post(\"/:id/comments\", auth, async (req, res) => {\n  try {\n    const { text } = req.body;\n\n    if (!text) {\n      return res.status(400).json({\n        success: false,\n        message: \"Comment text is required\",\n      });\n    }\n\n    const task = await Task.findById(req.params.id);\n    if (!task) {\n      return res.status(404).json({\n        success: false,\n        message: \"Task not found\",\n      });\n    }\n\n    task.comments.push({\n      user: req.user.id,\n      text,\n    });\n\n    // Log activity\n    task.activityLog.push({\n      action: \"commented\",\n      changedBy: req.user.id,\n      details: { comment: text },\n    });\n\n    await task.save();\n    await task.populate(\"comments.user\", \"name profileImage\");\n\n    res.json({\n      success: true,\n      message: \"Comment added successfully\",\n      comments: task.comments,\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\nmodule.exports = router;"
+    // Validate: Cannot mark done without assignee
+    if (status === "done" && !assignee) {
+      return res.status(400).json({
+        success: false,
+        message: "Assignee is required before marking task as done",
+      });
+    }
+
+    // Log activity for changed fields
+    const changes = [];
+    if (title && title !== task.title) changes.push(`title: ${task.title} → ${title}`);
+    if (description && description !== task.description) changes.push("description updated");
+    if (status && status !== task.status) changes.push(`status: ${task.status} → ${status}`);
+    if (priority && priority !== task.priority) changes.push(`priority: ${task.priority} → ${priority}`);
+    if (assignee && assignee !== task.assignee?.toString()) changes.push("assignee changed");
+
+    // Update fields
+    if (title) task.title = title;
+    if (description !== undefined) task.description = description;
+    if (status) task.status = status;
+    if (priority) task.priority = priority;
+    if (dueDate) task.dueDate = dueDate;
+    if (assignee) task.assignee = assignee;
+
+    // Add activity log
+    if (changes.length > 0) {
+      task.activityLog.push({
+        action: "updated",
+        changedBy: req.user.id,
+        details: { changes },
+      });
+    }
+
+    await task.save();
+    await task.populate("assignee", "name email profileImage");
+    await task.populate("creator", "name email profileImage");
+    await task.populate("activityLog.changedBy", "name profileImage");
+
+    res.json({
+      success: true,
+      message: "Task updated successfully",
+      task,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});\n\n// DELETE TASK - Delete task\n// DELETE /api/tasks/:id\nrouter.delete(\"/:id\", auth, async (req, res) => {\n  try {\n    const task = await Task.findById(req.params.id);\n\n    if (!task) {\n      return res.status(404).json({\n        success: false,\n        message: \"Task not found\",\n      });\n    }\n\n    // Check access - only creator or project owner can delete\n    const project = await Project.findById(task.project);\n    const canDelete =\n      task.creator.toString() === req.user.id ||\n      project.owner.toString() === req.user.id;\n\n    if (!canDelete) {\n      return res.status(403).json({\n        success: false,\n        message: \"You do not have permission to delete this task\",\n      });\n    }\n\n    await Task.findByIdAndDelete(req.params.id);\n\n    res.json({\n      success: true,\n      message: \"Task deleted successfully\",\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\n// ADD COMMENT - Add comment to task\n// POST /api/tasks/:id/comments\nrouter.post(\"/:id/comments\", auth, async (req, res) => {\n  try {\n    const { text } = req.body;\n\n    if (!text) {\n      return res.status(400).json({\n        success: false,\n        message: \"Comment text is required\",\n      });\n    }\n\n    const task = await Task.findById(req.params.id);\n    if (!task) {\n      return res.status(404).json({\n        success: false,\n        message: \"Task not found\",\n      });\n    }\n\n    task.comments.push({\n      user: req.user.id,\n      text,\n    });\n\n    // Log activity\n    task.activityLog.push({\n      action: \"commented\",\n      changedBy: req.user.id,\n      details: { comment: text },\n    });\n\n    await task.save();\n    await task.populate(\"comments.user\", \"name profileImage\");\n\n    res.json({\n      success: true,\n      message: \"Comment added successfully\",\n      comments: task.comments,\n    });\n  } catch (error) {\n    res.status(500).json({\n      success: false,\n      message: error.message,\n    });\n  }\n});\n\nmodule.exports = router;"
