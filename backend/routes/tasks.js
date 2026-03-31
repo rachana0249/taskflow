@@ -10,7 +10,7 @@ router.get("/", auth, async (req, res) => {
     }).select("_id");
     const projectIds = projects.map(p => p._id);
     const tasks = await Task.find({ project: { $in: projectIds } })
-      .populate("assignee creator")
+      .populate("assignee").populate("creator")
       .sort({ createdAt: -1 });
     res.json({ success: true, tasks });
   } catch (e) {
