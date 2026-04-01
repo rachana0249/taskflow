@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Real-time Team Collaboration and Task Manager Frontend",
   "private": true,
-  "proxy": "https://taskflow-backendd.onrender.com",
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
