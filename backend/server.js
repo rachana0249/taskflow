@@ -105,8 +105,8 @@ app.use((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 TaskFlow Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(`🔗 WebSocket enabled for real-time updates\n`);
